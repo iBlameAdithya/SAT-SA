@@ -1,0 +1,151 @@
+import React, { useState } from 'react';
+import { Finding } from '../types/api';
+import { EyeOff, Radio, Network, TrendingDown, ChevronDown, ChevronUp, Terminal } from 'lucide-react';
+
+interface NegativeSpacePanelProps {
+  findings: Finding[];
+  selectedEntityId: string | null;
+}
+
+export const NegativeSpacePanel: React.FC<NegativeSpacePanelProps> = ({
+  findings,
+  selectedEntityId,
+}) => {
+  const [expandedEvidences, setExpandedEvidences] = useState<Record<string, boolean>>({});
+
+  const toggleEvidence = (findingId: string) => {
+    setExpandedEvidences((prev) => ({
+      ...prev,
+      [findingId]: !prev[findingId],
+    }));
+  };
+
+  const negFindings = findings.filter(
+    (f) =>
+      f.finding_type === 'NEGATIVE_SPACE' &&
+      (!selectedEntityId || f.entity_id === selectedEntityId)
+  );
+
+  const getRuleIcon = (ruleCode: string) => {
+    switch (ruleCode) {
+      case 'MISSING_ALERT_CATEGORIES':
+        return <EyeOff className="w-4 h-4 text-purple-700" />;
+      case 'SUBNET_MONITORING_BLIND_SPOT':
+        return <Network className="w-4 h-4 text-purple-700" />;
+      case 'ABNORMALLY_LOW_ACTIVITY':
+        return <TrendingDown className="w-4 h-4 text-purple-700" />;
+      default:
+        return <Radio className="w-4 h-4 text-purple-700" />;
+    }
+  };
+
+  const getSeverityStyle = (severity: string) => {
+    switch (severity) {
+      case 'CRITICAL':
+        return 'bg-red-700 text-white border-red-900';
+      case 'HIGH':
+        return 'bg-orange-700 text-white border-orange-900';
+      default:
+        return 'bg-amber-600 text-white border-amber-800';
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-sm border border-slate-300 shadow-sm overflow-hidden">
+      {/* Official Government Section Header */}
+      <div className="bg-[#0b2545] text-white px-4 py-3 border-b border-slate-700 flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <EyeOff className="w-5 h-5 text-purple-300" />
+          <h3 className="text-sm font-bold tracking-wide uppercase font-serif">
+            SECTION 3.0 : NEGATIVE SPACE & TELEMETRY OMISSION AUDIT
+          </h3>
+        </div>
+        <span className="text-xs bg-purple-900 text-purple-100 font-bold px-2.5 py-0.5 rounded-sm border border-purple-700 font-mono">
+          {negFindings.length} BLIND SPOTS DETECTED
+        </span>
+      </div>
+
+      <div className="p-4 bg-slate-50 border-b border-slate-200 text-xs text-slate-700">
+        Identification of missing expected security telemetry: zero alerts logged for mandatory threat categories (`MALWARE`, `RANSOMWARE`, `EXFILTRATION`), or unmonitored core subnets (`10.200.0.0/16`).
+      </div>
+
+      <div className="p-4">
+        {negFindings.length === 0 ? (
+          <div className="bg-slate-50 rounded-sm border border-slate-200 p-6 text-center text-slate-600 text-xs font-medium">
+            No Negative Space omissions detected for the selected entity criteria.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {negFindings.map((finding) => (
+              <div
+                key={finding.finding_id}
+                className="bg-white rounded-sm border border-slate-300 p-4 hover:border-slate-400 shadow-xs transition"
+              >
+                <div className="flex items-start justify-between gap-3 mb-2.5 border-b border-slate-200 pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-slate-100 rounded-sm border border-slate-300">
+                      {getRuleIcon(finding.rule_code)}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900 font-serif">{finding.title}</h4>
+                      <span className="text-[10px] text-slate-600 font-mono font-semibold">
+                        ENTITY: {finding.entity_id} | CODE: {finding.rule_code}
+                      </span>
+                    </div>
+                  </div>
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-sm border uppercase tracking-wider ${getSeverityStyle(
+                      finding.severity
+                    )}`}
+                  >
+                    {finding.severity}
+                  </span>
+                </div>
+
+                <p className="text-xs text-slate-800 mb-3 leading-relaxed font-sans">
+                  {finding.description}
+                </p>
+
+                {finding.explainability_notes && (
+                  <div className="bg-slate-50 rounded-sm p-3 border border-slate-300 text-xs text-slate-700 mb-3">
+                    <strong className="text-slate-900 font-semibold block mb-1 text-[11px] uppercase tracking-wider">
+                      Statutory Audit Explainability:
+                    </strong>
+                    {finding.explainability_notes}
+                  </div>
+                )}
+
+                {finding.supporting_evidence && (
+                  <div className="mt-2">
+                    <button
+                      onClick={() => toggleEvidence(finding.finding_id)}
+                      className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded border border-slate-300 transition cursor-pointer mb-2"
+                    >
+                      <Terminal className="w-3.5 h-3.5 text-purple-800" />
+                      <span>{expandedEvidences[finding.finding_id] ? 'Hide Telemetry Evidence' : 'Inspect Telemetry Evidentiary Record'}</span>
+                      {expandedEvidences[finding.finding_id] ? (
+                        <ChevronUp className="w-3.5 h-3.5" />
+                      ) : (
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                    {expandedEvidences[finding.finding_id] && (
+                      <div className="bg-slate-900 text-slate-100 rounded-sm p-3 border border-slate-800 text-[11px] font-mono animate-in fade-in duration-150">
+                        <span className="text-slate-400 block mb-1 font-sans font-bold uppercase tracking-wider text-[10px]">
+                          Missing Telemetry Evidence (Supervisory Audit Index):
+                        </span>
+                        <pre className="overflow-x-auto whitespace-pre-wrap text-purple-300">
+                          {JSON.stringify(finding.supporting_evidence, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
